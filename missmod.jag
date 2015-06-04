@@ -1,0 +1,52 @@
+
+model{
+    for(i in 1:NM){
+    ind[i] ~ dbern(prob[i])
+    
+    for(j in 1:6){
+    ## This is in slope/intercept form, vs IRT form, to match the two-factor model
+    ## of missingness:
+    x[i,j] <- exp((1-(1-r[j])^2)*(lambda[ifpidx[i],1]*(theta[uidx[i],1] - b0[ifpidx[i]])))
+    }
+    prob[i] <- x[i,fcast[i]]/sum(x[i,1:6])
+    }
+    
+    for(i in 1:N){  ## Users
+    theta[i,1:2] ~ dmnorm(zero[1:2], invcor)
+    
+    ## Model 0/1 vector indicating who responds to what IFP
+    for(j in 1:M){
+    d[i,j] ~ dbern(pd[i,j])
+    probit(pd[i,j]) <- g0[j] + lambda[(M + j),1]*theta[i,1] + lambda[(M + j),2]*theta[i,2]
+    }
+    }
+    
+    zero[1] <- 0
+    zero[2] <- 0
+    invcor <- inverse(cormat)
+    cormat[1,1] <- 1
+    cormat[2,2] <- 1
+    cormat[1,2] <- phi
+    cormat[2,1] <- phi
+    phi ~ dunif(-1,1)
+    
+    lambda[1,1] ~ dnorm(0, .04)T(0,)
+    lambda[1,2] <- 0
+    lambda[(M+1),1] <-1
+    lambda[(M+1),2] <-1
+    
+    b0[1] ~ dnorm(0, .04)
+    g0[1] ~ dnorm(0, .04)
+    for(j in 2:M){  ## IFPs
+    ## forecast loadings
+    lambda[j,1] ~ dnorm(0, 0.04)I(0,)
+    lambda[j,2] <- 0
+    ## response loadings
+    lambda[(M+j),1] ~ dnorm(0, .04)
+    lambda[(M+j),2] ~ dnorm(0, .04)
+    
+    b0[j] ~ dnorm(0,0.04)
+    g0[j] ~ dnorm(0,0.04)
+    }
+       
+    }
